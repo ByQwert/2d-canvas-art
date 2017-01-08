@@ -76,7 +76,7 @@ for (var i = 1; i < canvas.width/ground[0].sprite.size[0]; i++) {
 var bullets = [];
 var enemies = [];
 var explosions = [];
-
+var loot = [];
 
 var lastFire = Date.now();
 var gameTime = 0;
@@ -106,27 +106,27 @@ function update(dt) {
   // It gets harder over time by adding enemies using this
   // equation: 1-.993^gameTime
   if(Math.random() < 1 - Math.pow(.999, gameTime)) {
-	if (enemies.length > 0) {
-	  if (enemies[enemies.length-1].pos[0] < canvas.width-60) {
-		enemies.push({
-		  pos: [canvas.width, zeroPointY-26],
-		  sprite: new Sprite('img/sprites.png', 
-							  [0, 156], 
-							  [60, 26],
-							  16, 
-							  [0, 1])
-	  });
-	  }
-	} else {
-	  enemies.push({
-		  pos: [canvas.width, zeroPointY-26],
-		  sprite: new Sprite('img/sprites.png', 
-							  [0, 156], 
-							  [60, 26],
-							  16, 
-							  [0, 1])
-	  });     
-	}
+		if (enemies.length > 0) {
+		  if (enemies[enemies.length-1].pos[0] < canvas.width-60) {
+			enemies.push({
+			  pos: [canvas.width, zeroPointY-26],
+			  sprite: new Sprite('img/sprites.png', 
+								  [0, 156], 
+								  [60, 26],
+								  16, 
+								  [0, 1])
+		  });
+		  }
+		} else {
+		  enemies.push({
+			  pos: [canvas.width, zeroPointY-26],
+			  sprite: new Sprite('img/sprites.png', 
+								  [0, 156], 
+								  [60, 26],
+								  16, 
+								  [0, 1])
+		  });     
+		}
   }
 
   checkCollisions();
@@ -220,6 +220,17 @@ function updateEntities(dt) {
           i--;
       }
   }
+
+  // Update all the loot
+   for(var i=0; i<loot.length; i++) {
+     loot[i].sprite.update(dt);
+
+     // Remove if taken
+     if(loot[i].looted) {
+         loot.splice(i, 1);
+         i--;
+     }
+  }
 }
 
 // Collisions
@@ -255,6 +266,15 @@ function checkCollisions() {
 			  // Add score
 			  score += 100;
 
+			  // Loot
+			  loot.push({
+			  	pos:[pos[0],zeroPointY-15],
+			  	sprite: new Sprite("img/sprites.png",
+			  		[0,183],
+			  		[15,15]),
+			  	looted: false
+			  });
+
 			  // Add an explosion
 			  explosions.push({
 				  pos: pos,
@@ -272,11 +292,19 @@ function checkCollisions() {
 			  break;
 		  }
 	  }
-
 	  if(boxCollides(pos, size, player.pos, player.sprite.size)) {
 		  gameOver();
 	  }
   }
+
+  for(var i=0; i<loot.length; i++) {
+		var pos = loot[i].pos;
+		var size = loot[i].sprite.size;
+  	if (boxCollides(pos, size, player.pos, player.sprite.size)) {
+	 		ammunition += 2;
+	 		loot[i].looted = true;
+		}
+	}
 }
 
 function checkPlayerBounds() {
@@ -309,6 +337,7 @@ function render() {
   renderEntities(ground);
   renderEntities(bullets);
   renderEntities(enemies);
+  renderEntities(loot);
   renderEntities(explosions);
 };
 
@@ -339,10 +368,11 @@ function reset() {
   isGameOver = false;
   gameTime = 0;
   score = 0;
-  ammunition = 20;
+  ammunition = 10;
 
   enemies = [];
   bullets = [];  
+  loot = [];
 
   player.pos = [50, zeroPointY-player.sprite.size[1]];
 };
