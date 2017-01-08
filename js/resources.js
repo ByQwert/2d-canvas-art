@@ -1,7 +1,6 @@
 
 (function() {
     var resourceCache = {};
-    var loading = [];
     var readyCallbacks = [];
 
     // Load an image url or an array of image urls
