@@ -21,7 +21,7 @@ var canvas = document.createElement("canvas");
 var ctx = canvas.getContext("2d");
 canvas.width = 600;
 canvas.height = 300;
-document.body.insertBefore(canvas,document.getElementById("credits"));
+ document.body.insertBefore(canvas,document.getElementById("credits"));
 
 // The main game loop
 var lastTime;
