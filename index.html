@@ -10,23 +10,30 @@
 	<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<!-- 	<div id="game-over">
+	<div id="game-over-overlay" style="display: block;"></div>
+	
+	<div id="game-over">
 		<h1>GAME OVER</h1>
 		<button id="play-again">Play Again</button>
 	</div>
+	
+	<table class="wrapper">
+		<tbody>
+			<tr>
+				<td id="instructions" colspan="2"><div>
+					Move with <span class="key">arrows</span> or <span class="key">A D</span>
+				</div>
+				<div>
+					Shoot with <span class="key">SPACE</span>
+				</div></td>
+			</tr>
+			<tr>
+				<td id="ammunition">Ammunition: <span id="ammunition-number"></span></td>
+				<td id="score">Score: <span id="score-number"></span></td>
+			</tr>
+		</tbody>
+	</table>
 
-	<div class="wrapper">
-		<div id="instructions">
-			<div>
-				move with <span class="key">arrows</span> or <span class="key">wasd</span>
-			</div>
-			<div>
-				shoot with <span class="key">space</span>
-			</div>
-		</div>
-
-		<div id="score"></div>
-	</div> -->
 	<script type="text/javascript" src="js/resources.js"></script>
 	<script type="text/javascript" src="js/input.js"></script>
 	<script type="text/javascript" src="js/sprite.js"></script>
