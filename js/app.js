@@ -22,7 +22,7 @@ document.body.appendChild(canvas);
 var lastTime;
 function main() {
 	var now = Date.now();
-	var dt = (now - lastTime) / 1000.0;
+	var dt = (now - lastTime) / 1000;
 
 	update(dt);
 	render();
@@ -68,14 +68,14 @@ for (var i = 1; i < canvas.width/ground[0].sprite.size[0]; i++) {
 							   				 [0, 0], 
 							   				 [9, 9])});   
 }
-//var bullets = [];
+var bullets = [];
 //var enemies = [];
 //var explosions = [];
 
 
-//var lastFire = Date.now();
+var lastFire = Date.now();
 var gameTime = 0;
-//var isGameOver;
+var isGameOver = false;
 //var terrainPattern;
 
 //var score = 0;
@@ -83,7 +83,7 @@ var gameTime = 0;
 
 // Speed in pixels per second
 var playerSpeed = 100;
-//var bulletSpeed = 500;
+var bulletSpeed = 500;
 //var enemySpeed = 100;
 
 // Update game objects
@@ -126,48 +126,48 @@ function handleInput(dt) {
 		player.pos[0] += playerSpeed * dt;
 	}
 
-	// if(input.isDown('SPACE') &&
-	//    !isGameOver &&
-	//    Date.now() - lastFire > 100) {
-	//     var x = player.pos[0] + player.sprite.size[0] / 2;
-	//     var y = player.pos[1] + player.sprite.size[1] / 2;
+	if(input.isDown('SPACE') &&
+	   !isGameOver &&
+	   Date.now() - lastFire > 300) {
+	    var x = player.pos[0] + player.sprite.size[0]-15;
+	    var y = player.pos[1] + player.sprite.size[1]/8;
 
-	//     bullets.push({ pos: [x, y],
-	//                    dir: 'forward',
-	//                    sprite: new Sprite('img/sprites.png', [0, 39], [18, 8]) });
-	//     bullets.push({ pos: [x, y],
-	//                    dir: 'up',
-	//                    sprite: new Sprite('img/sprites.png', [0, 50], [9, 5]) });
-	//     bullets.push({ pos: [x, y],
-	//                    dir: 'down',
-	//                    sprite: new Sprite('img/sprites.png', [0, 60], [9, 5]) });
+	    bullets.push({ pos: [x, y],
+	                   dir: 'forward',
+	                   sprite: new Sprite('img/sprites.png', [0, 146], [18, 8]) });
+	    // bullets.push({ pos: [x, y],
+	    //                dir: 'up',
+	    //                sprite: new Sprite('img/sprites.png', [0, 50], [9, 5]) });
+	    // bullets.push({ pos: [x, y],
+	    //                dir: 'down',
+	    //                sprite: new Sprite('img/sprites.png', [0, 60], [9, 5]) });
 
-	//     lastFire = Date.now();
-	// }
+	    lastFire = Date.now();
+	}
 }
 
 function updateEntities(dt) {
 	// Update the player sprite animation
 	player.sprite.update(dt);
 
-	// Update all the bullets
-	// for(var i=0; i<bullets.length; i++) {
-	//     var bullet = bullets[i];
+	//Update all the bullets
+	for(var i=0; i<bullets.length; i++) {
+	    var bullet = bullets[i];
 
-	//     switch(bullet.dir) {
-	//     case 'up': bullet.pos[1] -= bulletSpeed * dt; break;
-	//     case 'down': bullet.pos[1] += bulletSpeed * dt; break;
-	//     default:
-	//         bullet.pos[0] += bulletSpeed * dt;
-	//     }
+	    switch(bullet.dir) {
+	    case 'up': bullet.pos[1] -= bulletSpeed * dt; break;
+	    case 'down': bullet.pos[1] += bulletSpeed * dt; break;
+	    default:
+	        bullet.pos[0] += bulletSpeed * dt;
+	    }
 
-	//     // Remove the bullet if it goes offscreen
-	//     if(bullet.pos[1] < 0 || bullet.pos[1] > canvas.height ||
-	//        bullet.pos[0] > canvas.width) {
-	//         bullets.splice(i, 1);
-	//         i--;
-	//     }
-	// }
+	    // Remove the bullet if it goes offscreen
+	    if(bullet.pos[1] < 0 || bullet.pos[1] > canvas.height ||
+	       bullet.pos[0] > canvas.width) {
+	        bullets.splice(i, 1);
+	        i--;
+	    }
+	}
 
 	// Update all the enemies
 	// for(var i=0; i<enemies.length; i++) {
@@ -279,7 +279,7 @@ function render() {
 	//}
 
 	renderEntities(ground);
-	// renderEntities(bullets);
+	renderEntities(bullets);
 	// renderEntities(enemies);
 	// renderEntities(explosions);
 };
