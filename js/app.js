@@ -62,8 +62,8 @@ function init() {
 resources.load([
   'img/sprites.png',
   'img/terrain.png',
-  'img/aim.png',
-  'img/test.png'
+  'img/aim.png'
+  //'img/test.png'
 ]);
 resources.onReady(init);
 
