@@ -20,8 +20,18 @@ function getRandomInt(min, max) {
 var canvas = document.createElement("canvas");
 var ctx = canvas.getContext("2d");
 canvas.width = 600;
-canvas.height = 300;
+canvas.height = 600;
 document.body.insertBefore(canvas,document.getElementById("credits"));
+
+// Events for canvas
+function onMouseOver() {
+	console.log("on");
+}
+
+function onMouseMove(evt) {
+  var mouseX = evt.pageX - canvas.offsetLeft;
+  var mouseY = evt.pageY - canvas.offsetTop;
+}
 
 // The main game loop
 var lastTime;
@@ -37,6 +47,7 @@ function main() {
 };
 
 function init() {
+	//canvas.style.cursor = "url(img/aim.png)";
 	document.getElementById('play-again').addEventListener('click', function() {
     reset();
   });
@@ -51,6 +62,8 @@ function init() {
 resources.load([
   'img/sprites.png',
   'img/terrain.png',
+  'img/aim.png',
+  'img/test.png'
 ]);
 resources.onReady(init);
 
@@ -91,7 +104,7 @@ var lootAmmo = [];
 var lootArmor = [];
 var lvlUp = false;
 
-var boss = {state: false};
+var boss = {};
 
 var lastFire = Date.now();
 var gameTime = 0;
@@ -107,6 +120,7 @@ var ammunitionEl = document.getElementById('ammunition-number');
 var playerSpeed = 150;
 var bulletSpeed = 500;
 var enemySpeed = 100;
+var bossSpeed = 300;
 
 // Update game objects
 function update(dt) {
@@ -117,7 +131,7 @@ function update(dt) {
 
   // It gets harder over time by adding enemies using this
   // equation: 1-.993^gameTime
-  if (player.level == 1 || !boss.state) {
+  if (player.level == 1 && !boss.sprite) {
   	if(Math.random() < 1 - Math.pow(.999, gameTime)) {
 			if (enemies.length > 0) {
 			  if (enemies[enemies.length-1].pos[0] < canvas.width-60) {
@@ -140,6 +154,22 @@ function update(dt) {
 									  [0, 1])
 			  });     
 			}
+  	}
+  }
+
+  if (player.level == 2 && !boss.sprite) {
+  	//canvas.onmouseover = onMouseOver;
+  	canvas.onmousemove = onMouseMove;
+  	canvas.style.cursor = "url(\"img/aim.png\"), auto";
+  	boss = {
+  		pos: [canvas.width/2, 0],
+  		sprite: new Sprite ("img/sprites.png",
+  												[0, 241],
+  												[96,32],
+  												40,
+  												[0,1,2,3,4,5,6,7,8]),
+  		direction: Math.random > 0.5 ? "backword" : "forward", 
+  		lastDirUpdate: dt
   	}
   }
 
@@ -198,9 +228,22 @@ function updateEntities(dt) {
   player.sprite.update(dt);
 
   // Update the boss sprite animation
-  // if (boss.state) {
-  // 	boss.sprite.update(dt);
-  // }
+  if (boss.sprite) {
+  	if (Date.now() - boss.lastDirUpdate > getRandomInt(500,1000)) {
+  		if (Math.random() > 0.5) {
+  			boss.direction = "forward";  			
+  		} else {
+  			boss.direction = "backward";
+  		}
+  		boss.lastDirUpdate = Date.now();
+  	}  	
+  	if (boss.direction == "forward") {
+  		boss.pos[0] += bossSpeed * dt;
+  	} else {
+  		boss.pos[0] -= bossSpeed * dt;
+  	}
+  	boss.sprite.update(dt);
+  }
 
   // Update all the bullets
   for(var i=0; i<bullets.length; i++) {
@@ -266,7 +309,7 @@ function updateEntities(dt) {
     }
   }
 
-  // Update the level
+  // Update the lvlUp
   if (lvlUp){
   	lvlUp.sprite.update(dt);  	
   	if(lvlUp.looted) {
@@ -277,7 +320,10 @@ function updateEntities(dt) {
 
 // Collisions
 function checkCollisions() {
-  checkPlayerBounds();
+  checkBounds(player);
+  if (boss.sprite) {
+  	checkBounds(boss);
+  } 
   
   // Run collision detection for all enemies and bullets
   for(var i=0; i<enemies.length; i++) {
@@ -385,7 +431,6 @@ function checkCollisions() {
 			}
 			player.pos[1] = zeroPointY-player.sprite.size[1];
 			lvlUp.looted = true;
-			//boss.state = true;
 		}		
 	}
 
@@ -417,13 +462,13 @@ function collides(x, y, r, b, x2, y2, r2, b2) {
 			 b <= y2 || y > b2);
 }
 
-function checkPlayerBounds() {
+function checkBounds(entity) {
   // Check bounds
-  if(player.pos[0] < 0) {
-		player.pos[0] = 0;
+  if(entity.pos[0] < 0) {
+		entity.pos[0] = 0;
   }
-  else if(player.pos[0] > canvas.width - player.sprite.size[0]) {
-		player.pos[0] = canvas.width - player.sprite.size[0];
+  else if(entity.pos[0] > canvas.width - entity.sprite.size[0]) {
+		entity.pos[0] = canvas.width - entity.sprite.size[0];
   }
 
   // if(player.pos[1] < 0) {
@@ -444,10 +489,10 @@ function render() {
 		renderEntity(player);
   }
 
-  // Render the boss
-  // if (boss.state) {
-  // 	renderEntity(boss);
-  // }
+  //Render the boss
+  if (boss.sprite) {
+  	renderEntity(boss);
+  }
 
   renderEntities(ground);
   renderEntities(bullets);
@@ -498,7 +543,7 @@ function reset() {
   lootArmor = [];
   lvlUp = false;
 
-  boss.state = false;
+  boss = {};
  
   player.sprite.size = [55, 34];
   player.sprite.pos = [0, 0];
