@@ -20,7 +20,7 @@ function getRandomInt(min, max) {
 var canvas = document.createElement("canvas");
 var ctx = canvas.getContext("2d");
 canvas.width = 600;
-canvas.height = 600;
+canvas.height = 300;
 document.body.insertBefore(canvas,document.getElementById("credits"));
 
 // Events for canvas
@@ -31,6 +31,21 @@ function onMouseOver() {
 function onMouseMove(evt) {
   var mouseX = evt.pageX - canvas.offsetLeft;
   var mouseY = evt.pageY - canvas.offsetTop;
+  var k = (mouseY - (player.pos[1] + player.sprite.size[1]/2))/(mouseX-(player.pos[0] + player.sprite.size[0]/2));
+  var angle = Math.atan(k)*57.2958*(-1);
+  console.log(k, angle);
+  if (angle > 0  && angle < 45) {
+  	player.sprite.frames = [4];
+  }
+  if (angle < 90 && angle > 45) {
+  	player.sprite.frames = [10];
+  }
+  if (angle > -90 && angle < -45) {
+  	player.sprite.frames = [17];
+  }
+  if (angle > -45 && angle < 0) {
+  	player.sprite.frames = [21];
+  }
 }
 
 // The main game loop
@@ -62,14 +77,14 @@ function init() {
 resources.load([
   'img/sprites.png',
   'img/terrain.png',
-  'img/aim.png'
-  //'img/test.png'
+  'img/aim.png',
+  'img/test.png'
 ]);
 resources.onReady(init);
 
 // Game state
 var zeroPointY = canvas.height-100;
-var scoreForBoss = 200;
+var scoreForBoss = 100;
 
 var player = {
   pos: [0, 0],
@@ -423,12 +438,15 @@ function checkCollisions() {
 		if (boxCollides(pos, size, player.pos, player.sprite.size)) {
 			player.level = 2;
 			// Skin change
-			player.sprite.size = [63,36];
-			if (player.armor) {
-				player.sprite.pos = [126,77];				
-			} else {
-				player.sprite.pos = [0,77];
-			}
+			player.sprite.url = "img/test.png";
+			player.sprite.size = [63,46];
+			player.sprite.frames = [0];
+			// if (player.armor) {
+			// 	player.sprite.pos = [126,77];				
+			// } else {
+			// 	player.sprite.pos = [0,77];
+			// }
+			player.sprite.pos = [0,0];	
 			player.pos[1] = zeroPointY-player.sprite.size[1];
 			lvlUp.looted = true;
 		}		
@@ -440,11 +458,11 @@ function checkCollisions() {
 		var size = lootArmor[i].sprite.size;
   	if (boxCollides(pos, size, player.pos, player.sprite.size)) {
 	 		player.armor = true;
-	 		if (player.level == 2) {
-	 			player.sprite.pos = [126,77];		
-	 		} else {
-	 			player.sprite.pos = [112,0];
-	 		}	 		
+	 		// if (player.level == 2) {
+	 		// 	player.sprite.pos = [126,77];		
+	 		// } else {
+	 		// 	player.sprite.pos = [112,0];
+	 		// }	 		
 	 		lootArmor[i].looted = true;
 		}
 	}
