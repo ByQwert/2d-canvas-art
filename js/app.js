@@ -21,30 +21,51 @@ var canvas = document.createElement("canvas");
 var ctx = canvas.getContext("2d");
 canvas.width = 600;
 canvas.height = 300;
-document.body.insertBefore(canvas,document.getElementById("credits"));
+
+document.body.appendChild(canvas);
+//document.body.insertBefore(canvas,document.getElementById("credits"));
 
 // Events for canvas
-function onMouseOver() {
-	console.log("on");
-}
-
-function onMouseMove(evt) {
+function onMouseMove (evt) {
+	// TODO: Add aim and more angle frames
   var mouseX = evt.pageX - canvas.offsetLeft;
   var mouseY = evt.pageY - canvas.offsetTop;
-  var k = (mouseY - (player.pos[1] + player.sprite.size[1]/2))/(mouseX-(player.pos[0] + player.sprite.size[0]/2));
+  var k = (mouseY - (player.pos[1]))/(mouseX-(player.pos[0] + player.sprite.size[0]/2));
   var angle = Math.atan(k)*57.2958*(-1);
+  var frame = Math.ceil(angle/10);
+  if (frame < 0) {
+  	frame *= (-1);
+  	frame = 17 - frame;
+  }
+  player.sprite.frames = [frame];
   console.log(k, angle);
-  if (angle > 0  && angle < 45) {
-  	player.sprite.frames = [4];
+}
+
+function onMouseDown (evt) {
+  var mouseX = evt.pageX - canvas.offsetLeft;
+  var mouseY = evt.pageY - canvas.offsetTop;
+  var playerX = player.pos[0] + player.sprite.size[0]/2;
+  var playerY = player.pos[1];
+
+  var k = (mouseY - playerY)/(mouseX - playerX);
+  var angle = Math.atan(k)*57.2958*(-1);
+  var frame = Math.ceil(angle/10);
+  if (frame < 0) {
+  	frame *= (-1);
+  	frame = 17 - frame;
   }
-  if (angle < 90 && angle > 45) {
-  	player.sprite.frames = [10];
-  }
-  if (angle > -90 && angle < -45) {
-  	player.sprite.frames = [17];
-  }
-  if (angle > -45 && angle < 0) {
-  	player.sprite.frames = [21];
+  if(!isGameOver &&
+	 Date.now() - lastFire > 600 &&
+	 ammunition > 0) {
+	  ammunition--;
+	  ammunitionEl.innerHTML = ammunition;
+  	bullets.push({ pos: [playerX, playerY],
+  				 angle: angle,
+  				 posPlayer: [playerX, playerY],
+  				 posTarget: [mouseX,mouseY],
+					 dir: "angular",
+					 sprite: new Sprite('img/sprites.png', [frame*20, 277], [20, 18])});	
+  	lastFire = Date.now();
   }
 }
 
@@ -62,7 +83,6 @@ function main() {
 };
 
 function init() {
-	//canvas.style.cursor = "url(img/aim.png)";
 	document.getElementById('play-again').addEventListener('click', function() {
     reset();
   });
@@ -78,7 +98,7 @@ resources.load([
   'img/sprites.png',
   'img/terrain.png',
   'img/aim.png',
-  'img/test.png'
+  'img/test1.png',
 ]);
 resources.onReady(init);
 
@@ -125,10 +145,10 @@ var lastFire = Date.now();
 var gameTime = 0;
 var isGameOver;
 
-var score = 0;
+var score;
 var scoreEl = document.getElementById('score-number');
 
-var ammunition = 20;
+var ammunition;
 var ammunitionEl = document.getElementById('ammunition-number');
 
 // Speed in pixels per second
@@ -173,8 +193,8 @@ function update(dt) {
   }
 
   if (player.level == 2 && !boss.sprite) {
-  	//canvas.onmouseover = onMouseOver;
   	canvas.onmousemove = onMouseMove;
+  	canvas.onmousedown = onMouseDown;
   	canvas.style.cursor = "url(\"img/aim.png\"), auto";
   	boss = {
   		pos: [canvas.width/2, 0],
@@ -214,19 +234,22 @@ function handleInput(dt) {
   if(input.isDown('SPACE') &&
 	 !isGameOver &&
 	 Date.now() - lastFire > 300 &&
-	 ammunition > 0) {
+	 ammunition > 0 &&
+	 !boss.sprite) {
 	  ammunition--;
 	  ammunitionEl.innerHTML = ammunition;
 	  var x = player.pos[0] + player.sprite.size[0]-15;
 	  var y;
+	  var dir;
 	  if (player.level == 1) {
-	  	y = player.pos[1] + player.sprite.size[1]/8;
+	  	y = player.pos[1];
+	  	dir = "forward";
+	  	bullets.push({ pos: [x, y],
+					 dir: dir,
+					 sprite: new Sprite('img/sprites.png', [0, 277], [20, 18], 0 , [0])});
 	  } else {
 	  	y = player.pos[1] + player.sprite.size[1]/16;
 	  }
-	  bullets.push({ pos: [x, y],
-					 dir: 'forward',
-					 sprite: new Sprite('img/sprites.png', [0, 146], [18, 8]) });
 	  // bullets.push({ pos: [x, y],
 	  //                dir: 'up',
 	  //                sprite: new Sprite('img/sprites.png', [0, 50], [9, 5]) });
@@ -264,16 +287,37 @@ function updateEntities(dt) {
   for(var i=0; i<bullets.length; i++) {
 	  var bullet = bullets[i];
 
+	  // x = (targetX-centerX)*(y-centerY)/(targetY-centerY)+centerX;
+	  // y = (x-centerX)*(targetY-centerY)/(targetX-centerX)+centerY;
 	  switch(bullet.dir) {
-	  case 'up': bullet.pos[1] -= bulletSpeed * dt; break;
-	  case 'down': bullet.pos[1] += bulletSpeed * dt; break;
+	  case 'up': 
+	  	bullet.pos[1] -= bulletSpeed * dt; 
+	  	break;
+	  case 'down': 
+	  	bullet.pos[1] += bulletSpeed * dt; 
+	  	break;
+	  case 'angular' : 
+	  	bulletSpeed = 500;
+	  	if (bullet.angle > 0 && bullet.angle < 45) {
+  			bullet.pos[0] += bulletSpeed * dt;
+    		bullet.pos[1] = (bullet.pos[0]-bullet.posPlayer[0])*(bullet.posTarget[1]-bullet.posPlayer[1])/(bullet.posTarget[0]-bullet.posPlayer[0]) + bullet.posPlayer[1];
+			} else if (bullet.angle > -45 && bullet.angle < 0) {
+  			bullet.pos[0] -= bulletSpeed * dt;
+    		bullet.pos[1] = (bullet.pos[0]-bullet.posPlayer[0])*(bullet.posTarget[1]-bullet.posPlayer[1])/(bullet.posTarget[0]-bullet.posPlayer[0]) + bullet.posPlayer[1];
+			} 
+			if ((bullet.angle > 45 && bullet.angle < 90) || (bullet.angle < -45 && bullet.angle > -90)) {
+				bulletSpeed = 400;
+  			bullet.pos[1] -= bulletSpeed * dt;
+ 				bullet.pos[0] = (bullet.posTarget[0]-bullet.posPlayer[0])*(bullet.pos[1]-bullet.posPlayer[1])/(bullet.posTarget[1]-bullet.posPlayer[1])+bullet.posPlayer[0];
+  		}
+	  	break;
 	  default:
 		  bullet.pos[0] += bulletSpeed * dt;
 	  }
 
 	  // Remove the bullet if it goes offscreen
 	  if(bullet.pos[1] < 0 || bullet.pos[1] > canvas.height ||
-		 bullet.pos[0] > canvas.width) {
+		 bullet.pos[0] > canvas.width || bullet.pos[0] < 0) {
 		  bullets.splice(i, 1);
 		  i--;
 	  }
@@ -438,15 +482,15 @@ function checkCollisions() {
 		if (boxCollides(pos, size, player.pos, player.sprite.size)) {
 			player.level = 2;
 			// Skin change
-			player.sprite.url = "img/test.png";
-			player.sprite.size = [63,46];
+			player.sprite.url = "img/test1.png";
+			player.sprite.size = [63,47];
 			player.sprite.frames = [0];
 			// if (player.armor) {
 			// 	player.sprite.pos = [126,77];				
 			// } else {
 			// 	player.sprite.pos = [0,77];
 			// }
-			player.sprite.pos = [0,0];	
+			player.sprite.pos = [0,5];
 			player.pos[1] = zeroPointY-player.sprite.size[1];
 			lvlUp.looted = true;
 		}		
@@ -551,7 +595,7 @@ function reset() {
   gameTime = 0;
 
   score = 0;
-  ammunition = 10;
+  ammunition = 100;
   player.level = 1;
   player.armor = false;
 
