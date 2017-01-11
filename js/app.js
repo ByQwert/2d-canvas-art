@@ -27,18 +27,38 @@ document.body.appendChild(canvas);
 
 // Events for canvas
 function onMouseMove (evt) {
-	// TODO: Add aim and more angle frames
   var mouseX = evt.pageX - canvas.offsetLeft;
   var mouseY = evt.pageY - canvas.offsetTop;
-  var k = (mouseY - (player.pos[1]))/(mouseX-(player.pos[0] + player.sprite.size[0]/2));
-  var angle = Math.atan(k)*57.2958*(-1);
-  var frame = Math.ceil(angle/10);
-  if (frame < 0) {
-  	frame *= (-1);
-  	frame = 17 - frame;
-  }
-  player.sprite.frames = [frame];
-  console.log(k, angle);
+  if (mouseY < player.pos[1]) {
+  	var playerX = player.pos[0] + player.sprite.size[0]/2;
+  	var playerY = player.pos[1];
+  	var k = (mouseY - playerY)/(mouseX-playerX);
+  	var angle = Math.atan(k)*57.2958*(-1);
+  	var frame;
+
+  	aim.angle = angle;
+
+  	// Angular frames for player
+  	if (angle > 0) {
+  		frame = Math.ceil(angle/10);
+  	} else {
+  		frame = Math.floor(angle/10);
+  	}
+  	if (frame < 0) {
+  		frame *= (-1);
+  		frame = 18 - frame;
+  	}
+  	player.sprite.frames = [frame];
+
+  	// Angular position for aim
+  	if (angle > 0 && angle < 90) {
+  		aim.pos[0] =  playerX+(Math.cos(angle/57.2958)*aim.distance);
+  		aim.pos[1] = (aim.pos[0]-playerX)*(mouseY-playerY)/(mouseX-playerX)+playerY;
+  	} else if (angle > -90 && angle < 0) {
+  		aim.pos[0] = playerX-(Math.cos(angle/57.2958)*aim.distance);
+  		aim.pos[1] = (aim.pos[0]-playerX)*(mouseY-playerY)/(mouseX-playerX)+playerY;
+  	}
+  }  
 }
 
 function onMouseDown (evt) {
@@ -49,14 +69,21 @@ function onMouseDown (evt) {
 
   var k = (mouseY - playerY)/(mouseX - playerX);
   var angle = Math.atan(k)*57.2958*(-1);
-  var frame = Math.ceil(angle/10);
+  var frame;
+  frame = Math.ceil(angle/10);
+  if (angle > 0) {
+  	frame = Math.ceil(angle/10);
+  } else {
+  	frame = Math.floor(angle/10);
+  }
   if (frame < 0) {
   	frame *= (-1);
-  	frame = 17 - frame;
+  	frame = 18 - frame;
   }
   if(!isGameOver &&
 	 Date.now() - lastFire > 600 &&
-	 ammunition > 0) {
+	 ammunition > 0 &&
+	 mouseY < playerY) {
 	  ammunition--;
 	  ammunitionEl.innerHTML = ammunition;
   	bullets.push({ pos: [playerX, playerY],
@@ -97,7 +124,6 @@ function init() {
 resources.load([
   'img/sprites.png',
   'img/terrain.png',
-  'img/aim.png',
   'img/test1.png',
 ]);
 resources.onReady(init);
@@ -140,6 +166,8 @@ var lootArmor = [];
 var lvlUp = false;
 
 var boss = {};
+
+var aim = {};
 
 var lastFire = Date.now();
 var gameTime = 0;
@@ -192,10 +220,8 @@ function update(dt) {
   	}
   }
 
+  // Adding of boss and aim
   if (player.level == 2 && !boss.sprite) {
-  	canvas.onmousemove = onMouseMove;
-  	canvas.onmousedown = onMouseDown;
-  	canvas.style.cursor = "url(\"img/aim.png\"), auto";
   	boss = {
   		pos: [canvas.width/2, 0],
   		sprite: new Sprite ("img/sprites.png",
@@ -205,6 +231,18 @@ function update(dt) {
   												[0,1,2,3,4,5,6,7,8]),
   		direction: Math.random > 0.5 ? "backword" : "forward", 
   		lastDirUpdate: dt
+  	}
+  	// Add aim
+  	canvas.onmousemove = onMouseMove;
+  	canvas.onmousedown = onMouseDown;
+  	canvas.style.cursor = "none";
+  	aim = {
+  		pos: [-50,-50],
+  		sprite: new Sprite("img/sprites.png",
+  											 [0,302],
+  											 [13,13]),
+  		distance: 100,
+  		angle: 0
   	}
   }
 
@@ -224,11 +262,11 @@ function handleInput(dt) {
   // }
 
   if(input.isDown('LEFT') || input.isDown('a')) {
-	player.pos[0] -= playerSpeed * dt;
+		player.pos[0] -= playerSpeed * dt;
   }
 
   if(input.isDown('RIGHT') || input.isDown('d')) {
-	player.pos[0] += playerSpeed * dt;
+		player.pos[0] += playerSpeed * dt;	
   }
 
   if(input.isDown('SPACE') &&
@@ -264,6 +302,19 @@ function handleInput(dt) {
 function updateEntities(dt) {
   // Update the player sprite animation
   player.sprite.update(dt);
+
+  // Update aim
+  if (aim.sprite) {
+  	var playerX = player.pos[0] + player.sprite.size[0]/2;
+  	var playerY = player.pos[1];
+  	//console.log(playerX);
+  	var angle = aim.angle;
+  	 if (angle > 0 && angle < 90) {
+  		aim.pos[0] =  playerX+(Math.cos(angle/57.2958)*aim.distance);
+  	} else if (angle > -90 && angle < 0) {
+  		aim.pos[0] = playerX-(Math.cos(angle/57.2958)*aim.distance);
+  	}
+  } 
 
   // Update the boss sprite animation
   if (boss.sprite) {
@@ -526,10 +577,9 @@ function collides(x, y, r, b, x2, y2, r2, b2) {
 
 function checkBounds(entity) {
   // Check bounds
-  if(entity.pos[0] < 0) {
+  if (entity.pos[0] < 0) {
 		entity.pos[0] = 0;
-  }
-  else if(entity.pos[0] > canvas.width - entity.sprite.size[0]) {
+  } else if (entity.pos[0] > canvas.width - entity.sprite.size[0]) {
 		entity.pos[0] = canvas.width - entity.sprite.size[0];
   }
 
@@ -565,6 +615,9 @@ function render() {
   	renderEntity(lvlUp);
   }
   renderEntities(explosions);
+  if (aim.sprite) {
+  	renderEntity(aim);
+  }  
 };
 
 function renderEntities(list) {
