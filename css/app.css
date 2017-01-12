@@ -86,3 +86,9 @@ canvas {
 #game-over button {
 	font-size: 1.5em;
 }
+
+#message {
+	font-family: sans-serif;
+	margin-bottom: 1em;
+
+}

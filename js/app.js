@@ -26,18 +26,17 @@ document.body.appendChild(canvas);
 //document.body.insertBefore(canvas,document.getElementById("credits"));
 
 // Events for canvas
-
 function onMouseMove (evt) {
   var mouseX = evt.pageX - canvas.offsetLeft;
   var mouseY = evt.pageY - canvas.offsetTop;
-  if (mouseY < player.pos[1]) {
-  	var playerX = player.pos[0] + player.sprite.size[0]/2;
-  	var playerY = player.pos[1];
+  var playerY = player.pos[1];
+  if (mouseY < playerY) {
+  	var playerX = player.pos[0] + player.sprite.size[0]/2;  	
   	var k = (mouseY - playerY)/(mouseX-playerX);
   	var angle = Math.atan(k)*57.2958*(-1);
   	var frame;
 
-  	// Angular frames for player
+  	// Angular frame for player
   	if (angle > 0) {
   		frame = Math.ceil(angle/10);
   	} else {
@@ -57,6 +56,7 @@ function onMouseMove (evt) {
   		aim.pos[0] = playerX-(Math.cos(angle/57.2958)*aim.distance);
   		aim.pos[1] = playerY+(Math.sin(angle/57.2958)*aim.distance);
   	}
+
   	mouse = {
   		pos: [mouseX,mouseY]
   	};
@@ -66,10 +66,9 @@ function onMouseMove (evt) {
 function onMouseDown (evt) {
   var mouseX = evt.pageX - canvas.offsetLeft;
   var mouseY = evt.pageY - canvas.offsetTop;
-  var playerX = player.pos[0] + player.sprite.size[0]/2;
   var playerY = player.pos[1];
-
   if(!isGameOver &&  Date.now() - lastFire > 600 && ammunition > 0 && mouseY < playerY) {
+  	var playerX = player.pos[0] + player.sprite.size[0]/2;
 		var k = (mouseY - playerY)/(mouseX - playerX);
   	var angle = Math.atan(k)*57.2958*(-1);
   	var frame;
@@ -99,30 +98,6 @@ function onMouseDown (evt) {
   }
 }
 
-// The main game loop
-var lastTime;
-function main() {
-  var now = Date.now();
-  var dt = (now - lastTime) / 1000;
-
-  update(dt);
-  render();
-
-  lastTime = now;
-  requestAnimFrame(main);
-};
-
-function init() {
-	document.getElementById('play-again').addEventListener('click', function() {
-    reset();
-  });
-
-  reset();
-
-  lastTime = Date.now();
-  main();
-}
-
 // Load resouces
 resources.load([
   'img/sprites.png',
@@ -133,8 +108,9 @@ resources.onReady(init);
 
 // Game state
 var zeroPointY = canvas.height-100;
-var scoreForBoss = 100;
+var scoreForBoss = 1000;
 
+// Create player
 var player = {
   pos: [0, 0],
   sprite: new Sprite('img/sprites.png', // URL
@@ -146,6 +122,7 @@ var player = {
   				 level: 1
 };
 
+// Create ground
 var ground = [];
 ground.push({
 	  pos: [0,zeroPointY],
@@ -166,7 +143,7 @@ var enemies= [];
 var explosions = [];
 var lootAmmo = [];
 var lootArmor = [];
-var lvlUp = false;
+var lvlUp = {};
 
 var boss = {};
 
@@ -189,6 +166,30 @@ var bulletSpeed = 500;
 var enemySpeed = 100;
 var bossSpeed = 300;
 
+function init() {
+	document.getElementById('play-again').addEventListener('click', function() {
+    reset();
+  });
+
+  reset();
+
+  lastTime = Date.now();
+  main();
+}
+
+// The main game loop
+var lastTime;
+function main() {
+  var now = Date.now();
+  var dt = (now - lastTime) / 1000;
+
+  update(dt);
+  render();
+
+  lastTime = now;
+  requestAnimFrame(main);
+};
+
 // Update game objects
 function update(dt) {
   gameTime += dt;
@@ -198,7 +199,7 @@ function update(dt) {
 
   // It gets harder over time by adding enemies using this
   // equation: 1-.993^gameTime
-  if (player.level == 1 && !boss.sprite) {
+  if (player.level == 1 && !boss.sprite && !lvlUp.sprite) {
   	if(Math.random() < 1 - Math.pow(.999, gameTime)) {
 			if (enemies.length > 0) {
 			  if (enemies[enemies.length-1].pos[0] < canvas.width-60) {
@@ -226,6 +227,7 @@ function update(dt) {
 
   // Adding of boss and aim
   if (player.level == 2 && !boss.sprite) {
+  	// Add boss
   	boss = {
   		pos: [canvas.width/2, 0],
   		sprite: new Sprite ("img/sprites.png",
@@ -234,12 +236,14 @@ function update(dt) {
   												40,
   												[0,1,2,3,4,5,6,7,8]),
   		direction: Math.random > 0.5 ? "backword" : "forward", 
-  		lastDirUpdate: dt
+  		lastDirUpdate: dt,
+  		health: 100
   	}
+
   	// Add aim
   	canvas.onmousemove = onMouseMove;
   	canvas.onmousedown = onMouseDown;
-  	//canvas.style.cursor = "none";
+  	canvas.style.cursor = "none";
   	aim = {
   		pos: [-50,-50],
   		sprite: new Sprite("img/sprites.png",
@@ -247,9 +251,18 @@ function update(dt) {
   											 [13,13]),
   		distance: 100
   	}
+
+  	// Update instructions
+  	// var newInstruciton = document.createElement("div");
+  	// newInstruciton.innerHTML = "Aim with <span class=\"key\">Mouse</span>";
+  	//var parent = document.getElementById("instructions");
+  	//parent.appendChild(newInstruciton);
+  	document.getElementById("fire-button").innerHTML = "LMB";
   }
 
-  checkCollisions();
+  if (!isGameOver) {
+  	checkCollisions();
+  }  
 
   scoreEl.innerHTML = score;
   ammunitionEl.innerHTML = ammunition;
@@ -446,10 +459,12 @@ function updateEntities(dt) {
   }
 
   // Update the lvlUp
-  if (lvlUp){
-  	lvlUp.sprite.update(dt);  	
+  if (lvlUp.sprite){
+  	lvlUp.sprite.update(dt); 
+
+  	// Remove if taken 	
   	if(lvlUp.looted) {
-  		lvlUp = false;
+  		lvlUp = {};
     }
   }
 }
@@ -466,6 +481,7 @@ function checkCollisions() {
 	  var pos = enemies[i].pos;
 	  var size = enemies[i].sprite.size;
 
+	  // Detection for all enemies and bullets
 	  for(var j=0; j<bullets.length; j++) {
 		  var pos2 = bullets[j].pos;
 		  var size2 = bullets[j].sprite.size;
@@ -479,7 +495,7 @@ function checkCollisions() {
 			  score += 100;
 
 			  // Add loot
-			  if (score >= scoreForBoss && enemies.length == 0 && !lvlUp && player.level == 1) {
+			  if (score >= scoreForBoss && enemies.length == 0 && !lvlUp.sprite && player.level == 1) {
 			  	lvlUp = {
 			  		pos:[pos[0],zeroPointY-15],
 			  		sprite: new Sprite("img/sprites.png",
@@ -525,9 +541,10 @@ function checkCollisions() {
 		  }
 	  }
 
+	  // Detection for enemies and player
 	  if(boxCollides(pos, size, player.pos, player.sprite.size)) {
 	  	if (!player.armor) {
-		  	gameOver();	  		
+		  	gameOver("loss");	  		
 	  	} else {
 	  		// Remove the enemy
 			  enemies.splice(i, 1);
@@ -542,6 +559,47 @@ function checkCollisions() {
 	  }
   }
 
+
+  // Run collision detection for boss and bullets
+  if (boss.sprite) {
+  	for (var i = 0; i < bullets.length; i++) {
+  		var pos = bullets[i].pos;
+  		var size = bullets[i].sprite.size;
+	
+  		if(boxCollides(pos, size, boss.pos, boss.sprite.size)) {
+  			// Reduce boss health
+  			boss.health -= 20;
+	
+  			// Add score
+  			score += 200;
+	
+  			// Add an explosion
+				explosions.push({
+					pos: [pos[0],pos[1]-boss.sprite.size[1]/2],
+					sprite: new Sprite('img/sprites.png',
+								 [0, 200],
+								 [39, 39],
+								 16,
+								 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+								 null,
+								 true)
+				});
+		
+				// Remove boss
+  			if (boss.health == 0) {
+  				boss = {};
+  				player.level = 3;
+  				gameOver("victory");
+  			}
+
+				// Remove the bullet and stop this iteration
+				bullets.splice(j, 1);
+				break;
+  		}
+  	}  	
+  }
+
+
   // Check ammunition
   for(var i=0; i<lootAmmo.length; i++) {
 		var pos = lootAmmo[i].pos;
@@ -553,7 +611,7 @@ function checkCollisions() {
 	}
 
 	// Check lvlUp
-	if (lvlUp) {
+	if (lvlUp.sprite) {
 		var pos = lvlUp.pos;
 		var size = lvlUp.sprite.size;
 		if (boxCollides(pos, size, player.pos, player.sprite.size)) {
@@ -579,11 +637,9 @@ function checkCollisions() {
 		var size = lootArmor[i].sprite.size;
   	if (boxCollides(pos, size, player.pos, player.sprite.size)) {
 	 		player.armor = true;
-	 		// if (player.level == 2) {
-	 		// 	player.sprite.pos = [126,77];		
-	 		// } else {
-	 		// 	player.sprite.pos = [112,0];
-	 		// }	 		
+	 		if (player.level == 1) {
+	 			player.sprite.pos = [112,0];
+			}	
 	 		lootArmor[i].looted = true;
 		}
 	}
@@ -602,7 +658,6 @@ function collides(x, y, r, b, x2, y2, r2, b2) {
 }
 
 function checkBounds(entity) {
-  // Check bounds
   if (entity.pos[0] < 0) {
 		entity.pos[0] = 0;
   } else if (entity.pos[0] > canvas.width - entity.sprite.size[0]) {
@@ -637,7 +692,7 @@ function render() {
   renderEntities(enemies);
   renderEntities(lootAmmo);
   renderEntities(lootArmor);
-  if (lvlUp) {
+  if (lvlUp.sprite) {
   	renderEntity(lvlUp);
   }
   renderEntities(explosions);
@@ -660,7 +715,13 @@ function renderEntity(entity) {
 }
 
 // Game over
-function gameOver() {
+function gameOver(status) {
+	if (status == "loss") {		
+		document.getElementById("status").innerHTML = "GAME OVER!";
+	} else if (status == "victory") {
+		document.getElementById("status").innerHTML = "VICTORY!";
+	}
+	document.getElementById("message").innerHTML = "More features coming soon!";
   document.getElementById('game-over').style.display = 'block';
   document.getElementById('game-over-overlay').style.display = 'block';
   isGameOver = true;
@@ -674,19 +735,31 @@ function reset() {
   gameTime = 0;
 
   score = 0;
-  ammunition = 100;
-  player.level = 1;
-  player.armor = false;
+  ammunition = 20;
 
   enemies = [];
   bullets = [];  
   lootAmmo = [];
   lootArmor = [];
-  lvlUp = false;
+  lvlUp = {};
 
   boss = {};
- 
-  player.sprite.size = [55, 34];
-  player.sprite.pos = [0, 0];
-  player.pos = [50, zeroPointY-player.sprite.size[1]];
+
+  aim = {};
+	mouse = {};
+	canvas.onmousemove = "undefined";
+  canvas.onmousedown = "undefined";
+  canvas.style.cursor = "auto";	
+
+ 	player = {
+ 	pos: [0,0],
+  sprite: new Sprite('img/sprites.png', // URL
+					 [0, 0], // Position on sprites
+					 [55, 34], // Size on sprites
+					 15, // Speed
+					 [0, 1]), // Frames
+  				 armor: false,
+  				 level: 1
+	};
+	player.pos = [50, zeroPointY-player.sprite.size[1]];
 };
